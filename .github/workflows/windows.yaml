@@ -1,0 +1,36 @@
+name: Build and Run Rust Application (Windows)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-run:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install dependencies
+        run: |
+          cargo fetch
+
+      - name: Build the application
+        run: |
+          cargo build --release
+
+      - name: Run the application (Windows)
+        run: |
+          .\target\release\display-fonts.exe
+        shell: cmd

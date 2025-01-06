@@ -1,0 +1,37 @@
+name: Build and Run Rust Application (Linux)
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+
+      - name: Install dependencies
+        run: |
+          sudo apt update -y && sudo apt install libcairo2-dev libglib2.0-dev libfontconfig-dev libfreetype6 libfreetype-dev -y
+          cargo fetch
+
+      - name: Build the application
+        run: |
+          cargo build --release
+
+      - name: Run the application
+        run: |
+          ./target/release/display-fonts
+        shell: bash
