@@ -1,6 +1,4 @@
-use cairo::freetype::Face;
-use fontmanager::font_manager::{FontManager, FontStyle};
-
+use fontmanager::{FontManager, FontSourceType, FontStyle};
 // const TEST_STRING1: &str = "A B C D E\n \u{EA84} a b c d e";
 
 const TEST_STRING: &str = r"A B C D E F G H I J K L M N O P Q R S T U V W X Y Z
@@ -29,12 +27,20 @@ fn main() {
 
     let manager = FontManager::new();
 
-    let info = manager.find(vec!["Nimbus Sans Narrow"], FontStyle::Normal);
-    let face = manager.load(&info.unwrap()).unwrap();
+    let arg = std::env::args().nth(1);
+    let binding = arg.unwrap_or("arial".into());
+    let font = binding.as_str();
+
+    let info = manager.find(FontSourceType::Fontkit, &[font], FontStyle::Normal);
+    if info.is_none() {
+        eprintln!("Font not found: {}", font);
+        return;
+    }
+    let face = manager.fontkit_load_freetype_font(&info.unwrap()).unwrap();
     char_to_svg(face, TEST_STRING);
 }
 
-fn char_to_svg(face: Face, content: &str) {
+fn char_to_svg(face: freetype::Face, content: &str) {
     face.set_char_size(10 * 64, 0, 10, 0).unwrap();
 
     println!("<?xml version=\"1.0\" standalone=\"no\"?>");
@@ -57,7 +63,10 @@ fn char_to_svg(face: Face, content: &str) {
             continue;
         }
 
-        face.load_char(c as usize, cairo::freetype::face::LoadFlag::NO_SCALE).unwrap();
+        let result = face.load_char(c as usize, freetype::face::LoadFlag::NO_SCALE);
+        if result.is_err() {
+            continue;
+        }
 
         let glyph = face.glyph();
         let metrics = glyph.metrics();
@@ -94,13 +103,13 @@ fn char_to_svg(face: Face, content: &str) {
 }
 
 
-fn draw_curve(curve: cairo::freetype::outline::Curve) {
+fn draw_curve(curve: freetype::outline::Curve) {
     match curve {
-        cairo::freetype::outline::Curve::Line(pt) => println!("L {} {}", pt.x, -pt.y),
-        cairo::freetype::outline::Curve::Bezier2(pt1, pt2) => {
+        freetype::outline::Curve::Line(pt) => println!("L {} {}", pt.x, -pt.y),
+        freetype::outline::Curve::Bezier2(pt1, pt2) => {
             println!("Q {} {} {} {}", pt1.x, -pt1.y, pt2.x, -pt2.y)
         }
-        cairo::freetype::outline::Curve::Bezier3(pt1, pt2, pt3) => println!(
+        freetype::outline::Curve::Bezier3(pt1, pt2, pt3) => println!(
             "C {} {} {} {} {} {}",
             pt1.x, -pt1.y, pt2.x, -pt2.y, pt3.x, -pt3.y
         ),

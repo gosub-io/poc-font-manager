@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use crate::font_manager::sources::FontSourceType;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum FontStyle {
     Normal,
     Italic,

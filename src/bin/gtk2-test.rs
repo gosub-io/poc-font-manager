@@ -4,9 +4,7 @@ use image::Rgba;
 use parley::layout::{Alignment, Layout, PositionedLayoutItem};
 use parley::style::{FontWeight, StyleProperty};
 use parley::{InlineBox, LayoutContext};
-use fontmanager::font_manager::font_info::FontInfo;
-use fontmanager::font_manager::manager::FontManager;
-use fontmanager::font_manager::sources::FontSourceType;
+use fontmanager::{FontInfo, FontManager, FontSourceType, FontStyle};
 
 const RENDER_GLYPHS_PER_RUN : bool = false;
 
@@ -41,16 +39,6 @@ fn main() -> glib::ExitCode {
     app.run()
 }
 
-// struct FontRenderData<'a> {
-//     font_map: pango::FontMap,
-//     context: pango::Context,
-//     font_desc: Option<pango::FontDescription>,
-//     pango_font: Option<RefCell<pango::Font>>,
-//
-//     parley_font_context: FontContext,
-//     parley_font_stack: Option<FontStack<'a>>,
-// }
-
 fn build_ui(app: &Application) {
     // Create a window and set the title
     let window = ApplicationWindow::builder()
@@ -58,21 +46,8 @@ fn build_ui(app: &Application) {
         .title("GTK Font Renderer")
         .build();
 
-    // let font_map = pangocairo::FontMap::new();
-    // let context = font_map.create_context();
-    //
-    // let mut render_data = FontRenderData {
-    //     // Pango
-    //     font_map: font_map.clone(),
-    //     context: context.clone(),
-    //     font_desc: None,
-    //     pango_font: None,
-    //     parley_font_context: FontContext::new(),
-    //     parley_font_stack: None,
-    // };
-
     let manager = FontManager::new();
-    let font_info = manager.find(FontSourceType::Fontkit, &["comic sans ms"], fontmanager::font_manager::font_info::FontStyle::Normal).unwrap();
+    let font_info = manager.find(FontSourceType::Fontkit, &["comic sans ms"], FontStyle::Normal).unwrap();
 
     // let text = "Some text here. Let's make it a bit longer so that line wrapping kicks in 😊. And also some اللغة العربية arabic text.\nThis is underline and strikethrough text";
     // let text = "hello world. This is a test to see if it works! abcdefghhijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456790";
@@ -90,10 +65,6 @@ fn build_ui(app: &Application) {
         let mut height = 100.0;
 
         for fs in [32.0, 16.0, 8.0, 4.0] {
-            // Set font and size to use
-            // let fk_font = manager.fontkit_load_font(&fontinfo).unwrap();
-            // let p_font = manager.parley_load_font(&fontinfo).unwrap();
-
             // Create layout with parley
             let layout = create_layout(&manager, &font_info, text, width as f64, fs);
             let h = layout.height();
@@ -227,12 +198,13 @@ fn create_layout(manager: &FontManager, font: &FontInfo, text: &str, width: f64,
     // let underline_style = StyleProperty::Underline(true);
     // let strikethrough_style = StyleProperty::Strikethrough(true);
 
-    let mut font_context = manager.parley_context();
-    let font = manager.parley_load_font(&font).unwrap();
+    let font_stack = manager.parley_get_font_stack(&font).unwrap();
+    let binding = manager.parley_context().expect("Failed to get font context");
+    let mut font_context = binding.borrow_mut();
 
     let mut builder = layout_cx.ranged_builder(&mut font_context, &text, display_scale);
     builder.push_default(brush_style);
-    builder.push_default(font);
+    builder.push_default(font_stack);
     builder.push_default(StyleProperty::LineHeight(1.3));
     builder.push_default(StyleProperty::FontSize(font_size as f32));
     builder.push_default(StyleProperty::LetterSpacing(5.0));

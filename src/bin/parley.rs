@@ -1,15 +1,15 @@
 use image::codecs::png::PngEncoder;
 use image::{self, Pixel, Rgba, RgbaImage};
 use parley::layout::{Alignment, Glyph, GlyphRun, Layout, PositionedLayoutItem};
-use parley::style::{FontStack, FontWeight, StyleProperty};
-use parley::{FontContext, InlineBox, LayoutContext};
+use parley::style::{FontWeight, StyleProperty};
+use parley::{InlineBox, LayoutContext};
 use std::fs::File;
 use swash::scale::image::Content;
 use swash::scale::{Render, ScaleContext, Scaler, Source, StrikeWith};
 use swash::zeno;
 use swash::FontRef;
 use zeno::{Format, Vector};
-use fontmanager::font_manager::FontStyle;
+use fontmanager::{FontManager, FontSourceType, FontStyle};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct ColorBrush {
@@ -35,21 +35,10 @@ fn main() {
 
     let padding = 20;
 
-    let mut font_cx = FontContext::new();
-
-    font_cx.collection.family_names().for_each(|name| {
-        println!("Family: {}", name);
-    });
-    let font_stack = FontStack::from("comic sans ms");
-
-    let fontmanager = fontmanager::font_manager::FontManager::new();
-    let Some(font_info) = fontmanager.find(vec!["arial"], FontStyle::Normal) else {
-        panic!("Font not found");
-    };
-    let font = fontmanager.load(&font_info).expect("Error loading font");
-
-
-
+    let manager = FontManager::new();
+    let font_info = manager.find(FontSourceType::Parley, &["consolas", "verdana", "comic sans ms", "arial"], FontStyle::Normal).expect("font not found");
+    let font_stack = manager.parley_get_font_stack(&font_info).expect("Comic sans not found");
+    let font_cx = manager.parley_context().expect("Parley context not found");
 
     let mut layout_cx = LayoutContext::new();
     let mut scale_cx = ScaleContext::new();
@@ -63,7 +52,8 @@ fn main() {
     let text = "Some text here. Let's make it a bit longer so that line wrapping kicks in 😊. And also some اللغة العربية arabic text.\nThis is underline and strikethrough text";
     // let text = fontmanager::flatland::TEXT;
 
-    let mut builder = layout_cx.ranged_builder(&mut font_cx, &text, display_scale);
+    let mut binding = font_cx.borrow_mut();
+    let mut builder = layout_cx.ranged_builder(&mut binding, &text, display_scale);
     builder.push_default(brush_style);
     builder.push_default(font_stack);
     builder.push_default(StyleProperty::LineHeight(1.3));
@@ -127,9 +117,10 @@ fn main() {
         path.push("swash_render.png");
         path
     };
-    let output_file = File::create(output_path).unwrap();
+    let output_file = File::create(output_path.clone()).unwrap();
     let png_encoder = PngEncoder::new(output_file);
     img.write_with_encoder(png_encoder).unwrap();
+    println!("Image written to: {:?}", output_path);
 }
 
 

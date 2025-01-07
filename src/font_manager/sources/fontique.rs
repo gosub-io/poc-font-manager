@@ -1,10 +1,9 @@
 use std::collections::HashSet;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use log::info;
-use anyhow::Error;
 use fontique::{Collection, CollectionOptions, SourceKind};
 use crate::font_manager::font_info::{FontInfo, FontStyle};
-use crate::font_manager::sources::{FontSource, FontSourceType};
+use crate::font_manager::sources::{resolve_symlink, FontSource, FontSourceType};
 
 #[allow(unused)]
 pub struct FontiqueSource {
@@ -74,27 +73,4 @@ impl FontSource for FontiqueSource {
     fn available_fonts(&self) -> &[FontInfo] {
         &self.font_info
     }
-
-    fn find(&self, _family: &[&str], _style: FontStyle) -> Result<FontInfo, Error> {
-        todo!()
-    }
-}
-
-fn resolve_symlink(path: PathBuf) -> PathBuf {
-    let mut resolved_path = path.clone();
-
-    loop {
-        match std::fs::read_link(&resolved_path) {
-            Ok(target) => {
-                resolved_path = if target.is_relative() {
-                    path.parent().unwrap_or(Path::new("/")).join(target)
-                } else {
-                    target
-                };
-            },
-            Err(_) => break,
-        }
-    }
-
-    resolved_path
 }

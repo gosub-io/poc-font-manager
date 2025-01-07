@@ -84,18 +84,28 @@ impl FontSource for PangoSource {
     fn available_fonts(&self) -> &[FontInfo] {
         &self.font_info
     }
-
-    fn find(&self, _family: &[&str], _style: FontStyle) -> Result<FontInfo, Error> {
-        todo!()
-    }
 }
 
-// impl PangoSource {
-//     fn pango_stack(&self) -> &FontMap {
-//         &self.font_map
-//     }
-//
-//     fn pango_context(&self) -> &Context {
-//         &self.context
-//     }
-// }
+impl PangoSource {
+    pub fn load_font(&self, info: &FontInfo) -> Result<pangocairo::pango::Font, Error> {
+        let family = self.font_map.load_font(&self.context, &self.get_description(info, 12.0))
+            .ok_or_else(|| Error::msg("Failed to load font"))?;
+
+        Ok(family)
+    }
+
+    pub fn get_description(&self, info: &FontInfo, size: f64) -> pangocairo::pango::FontDescription {
+        let mut desc = pangocairo::pango::FontDescription::new();
+        desc.set_family(&info.family.clone());
+
+        desc.set_style(match info.style {
+            FontStyle::Italic => pangocairo::pango::Style::Italic,
+            FontStyle::Oblique => pangocairo::pango::Style::Oblique,
+            FontStyle::Normal => pangocairo::pango::Style::Normal,
+        });
+
+        desc.set_size((size * pangocairo::pango::SCALE as f64) as i32);
+
+        desc
+    }
+}

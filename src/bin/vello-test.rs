@@ -78,7 +78,7 @@ impl ApplicationHandler for App<'_> {
         // surface.configure(&device, &config);
 
 
-// STEP 2: Create a scene
+        // STEP 2: Create a scene
 
         // let mut scene = Scene::default();
         // scene.append(&Draw::Fill(Fill::new(

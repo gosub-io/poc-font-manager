@@ -1,14 +1,14 @@
 use crate::font_manager::manager::LOG_TARGET;
 use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use anyhow::{anyhow, Error};
+use anyhow::anyhow;
 use font_kit::handle::Handle;
 use font_kit::source::SystemSource;
 use freetype::{Face, Library};
 use log::{error, info};
 use crate::font_manager::font_info::{FontInfo, FontStyle};
-use crate::font_manager::sources::{FontSource, FontSourceType};
+use crate::font_manager::sources::{resolve_symlink, FontSource, FontSourceType};
 
 #[allow(unused)]
 pub struct FontKitSource {
@@ -53,9 +53,13 @@ impl FontSource for FontKitSource {
     fn available_fonts(&self) -> &[FontInfo] {
         &self.font_info
     }
+}
 
-    fn find(&self, _family: &[&str], _style: FontStyle) -> Result<FontInfo, Error> {
-        todo!()
+impl FontKitSource {
+    pub fn load_freetype_font(&self, font_info: &FontInfo) -> Result<Face, anyhow::Error> {
+        let path = font_info.path.as_ref().ok_or_else(|| anyhow!("No path in font info"))?;
+        let face = self.ft_library.new_face(path, font_info.index.unwrap_or(0) as isize)?;
+        Ok(face)
     }
 }
 
@@ -97,23 +101,4 @@ fn handle_to_info(seen_paths: &mut HashSet<PathBuf>, handle: &Handle) -> Result<
         path: Some(resolved_path.clone()),
         index: Some(*font_index as i32),
     })
-}
-
-fn resolve_symlink(path: PathBuf) -> PathBuf {
-    let mut resolved_path = path.clone();
-
-    loop {
-        match std::fs::read_link(&resolved_path) {
-            Ok(target) => {
-                resolved_path = if target.is_relative() {
-                    path.parent().unwrap_or(Path::new("/")).join(target)
-                } else {
-                    target
-                };
-            },
-            Err(_) => break,
-        }
-    }
-
-    resolved_path
 }
