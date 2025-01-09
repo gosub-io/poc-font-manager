@@ -14,11 +14,15 @@ fn main() -> glib::ExitCode {
         .build();
     app.connect_activate(build_ui);
 
+    app.connect_startup(|_app| {
+        println!("Setting default icon");
+        gtk4::Window::set_default_icon_name(APP_ID);
+    });
+
     app.run()
 }
 
 fn build_ui(app: &Application) {
-
     let font_manager = FontManager::new();
     let _ = font_manager.find(vec!["comic sans ms"], FontStyle::Normal).expect("Failed to find font Comic Sans MS");
     let _ = font_manager.find(vec!["Arial"], FontStyle::Normal).expect("Failed to find font Arial");
