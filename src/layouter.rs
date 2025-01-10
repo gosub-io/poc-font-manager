@@ -1,14 +1,17 @@
 use crate::font_manager::FontInfo;
 
+#[allow(dead_code)]
 struct Layouter {
 }
 
 impl Layouter {
+    #[allow(dead_code)]
     pub fn new() -> Layouter {
         Layouter {}
     }
 
-    pub fn generate_layout(&self, info: &FontInfo, text: &str, size: f32, width: f32) {
+    #[allow(dead_code)]
+    pub fn generate_layout(&self, _info: &FontInfo, _text: &str, _size: f32, _width: f32) {
         println!("Layouting...");
     }
 }
