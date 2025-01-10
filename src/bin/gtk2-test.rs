@@ -1,10 +1,14 @@
-use std::ffi::c_ulong;
-use gtk4::{glib, Application, ApplicationWindow, DrawingArea};
+use gtk4::{glib, pango, Application, ApplicationWindow, DrawingArea};
+use gtk4::pango::FontDescription;
 use gtk4::prelude::{ApplicationExt, ApplicationExtManual, DrawingAreaExt, DrawingAreaExtManual, GtkWindowExt, WidgetExt};
 use image::Rgba;
+use pangocairo::prelude::FontMapExt;
 use parley::layout::{Alignment, Layout, PositionedLayoutItem};
 use parley::style::{FontStack, FontWeight, StyleProperty};
 use parley::{FontContext, InlineBox, LayoutContext};
+use rand::Rng;
+
+const RENDER_GLYPHS_PER_RUN : bool = false;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct ColorBrush {
@@ -18,7 +22,6 @@ impl Default for ColorBrush {
         }
     }
 }
-
 
 const APP_ID: &str = "io.gosub.font-manager.gtk-test";
 
@@ -54,10 +57,12 @@ fn build_ui(app: &Application) {
         cr.rectangle(0.0, 0.0, 100.0, 100.0);
         let _ = cr.fill();
 
-        let layout = create_layout("Hello, world!", width as f64);
+        // let text = "Some text here. Let's make it a bit longer so that line wrapping kicks in 😊. And also some اللغة العربية arabic text.\nThis is underline and strikethrough text";
+        let text = "hello world. This is a test to see if it works!";
+        let layout = create_layout(text, width as f64);
         let height = layout.height();
 
-        draw(&cr, layout);
+        draw(&cr, layout, 100.0, 100.0);
 
         // Get current position and add the layout height. This is the new height of the canvas in this drawing area so
         // we can scroll.
@@ -77,34 +82,78 @@ fn build_ui(app: &Application) {
     window.present();
 }
 
-fn draw(cr: &gtk4::cairo::Context, layout: Layout<ColorBrush>) {
-    let mut x_off = 0.0;
+fn draw(cr: &gtk4::cairo::Context, layout: Layout<ColorBrush>, offset_x: f32, offset_y: f32) {
+    let mut rng = rand::rng();
+
+    let font_map = pangocairo::FontMap::new();
+    let context = font_map.create_context();
+    let font_desc = FontDescription::from_string("arial 64");
+    let pango_font = font_map.load_font(&context, &font_desc).expect("Failed to load font");
+
     for line in layout.lines() {
         for item in line.items() {
             match item {
                 PositionedLayoutItem::GlyphRun(glyph_run) => {
-                    for g in glyph_run.glyphs() {
-                        println!("GlyphID: {}", g.id);
-                        let cg = gtk4::cairo::Glyph::new(
-                            g.id as u32 as c_ulong,
-                            x_off + g.x as f64,
-                            g.y as f64,
+                    let run_x = offset_x + glyph_run.offset();
+                    let run_y = offset_y + glyph_run.baseline();
+
+                    cr.rectangle(
+                        run_x as f64,
+                        (glyph_run.baseline() - 48.0) as f64,
+                        glyph_run.advance() as f64,
+                        48.0,
+                    );
+                    cr.set_source_rgba(rng.random(), rng.random(), rng.random(), 0.5);
+                    let _ = cr.fill();
+
+                    // Render a whole glyph run at once
+
+                    if RENDER_GLYPHS_PER_RUN {
+                        // convert glyph_run.glyphs() to a vector of GlyphInfo
+                        let mut glyphs = Vec::new();
+                        for g in glyph_run.positioned_glyphs() {
+                            glyphs.push(g);
+                        }
+                        dbg!(&glyphs);
+
+                        let mut gs = pango::GlyphString::new();
+                        gs.set_size(glyphs.len() as i32);
+                        for (i, glyph) in glyphs.iter().enumerate() {
+                            let m = gs.glyph_info_mut();
+                            m[i].set_glyph(glyph.id as u32);
+                            m[i].geometry_mut().set_x_offset(glyph.x as i32);
+                            m[i].geometry_mut().set_y_offset(glyph.y as i32);
+                        }
+
+                        cr.set_source_rgba(0.0, 0.0, 0.0, 1.0);
+                        cr.move_to(run_x as f64, run_y as f64);
+                        pangocairo::functions::show_glyph_string(
+                            cr,
+                            &pango_font,
+                            &mut gs,
                         );
-                        let _ = cr.show_glyphs(&[cg]);
+                    } else {
+                        // Render per glyph
+                        let mut c_x = run_x;
+                        for g in glyph_run.glyphs() {
+                            let g_x = c_x + g.x;
+                            let g_y = run_y + g.y;
+                            c_x += g.advance;
 
-                        x_off += g.advance as f64;
+                            let mut gs = pango::GlyphString::new();
+                            gs.set_size(1);
+                            let m = gs.glyph_info_mut();
+                            m[0].set_glyph(g.id as u32);
 
-                        // let x = g.x as f64;
-                        // let y = g.y as f64;
-                        // let width = g. as f64;
-                        // let height = g.height as f64;
-                        // cr.rectangle(x, y, g.advance as f64, g.advance as f64);
-                        // cr.set_source_rgba(0.0, 0.0, 0.0, 1.0);
-                        // let _ = cr.stroke();
-                        // cr.set_source_rgba(0.0, 0.0, 1.0, 1.0);
-                        // let _ = cr.fill();
+                            cr.set_source_rgba(0.0, 0.0, 0.0, 1.0);
+                            cr.move_to(g_x as f64, g_y as f64);
+                            pangocairo::functions::show_glyph_string(
+                                cr,
+                                &pango_font,
+                                &mut gs,
+                            );
+                        }
                     }
-                    // render_glyph_run(&mut scale_cx, &glyph_run, &mut img, padding);
                 }
                 PositionedLayoutItem::InlineBox(inline_box) => {
                     cr.rectangle(
@@ -130,7 +179,7 @@ fn create_layout(text: &str, width: f64) -> Layout<ColorBrush> {
     let text_color = Rgba([0, 0, 0, 255]);
 
     let mut font_cx = FontContext::new();
-    let font_stack = FontStack::from("comic sans ms");
+    let font_stack = FontStack::from("arial");
 
     // let fontmanager = fontmanager::font_manager::FontManager::new();
     // let Some(font_info) = fontmanager.find(vec!["arial"], FontStyle::Normal) else {
@@ -142,32 +191,33 @@ fn create_layout(text: &str, width: f64) -> Layout<ColorBrush> {
     let text_brush = ColorBrush { color: text_color };
     let brush_style = StyleProperty::Brush(text_brush);
     let bold_style = StyleProperty::FontWeight(FontWeight::EXTRA_BLACK);
-    let underline_style = StyleProperty::Underline(true);
-    let strikethrough_style = StyleProperty::Strikethrough(true);
+    // let underline_style = StyleProperty::Underline(true);
+    // let strikethrough_style = StyleProperty::Strikethrough(true);
 
-    let mut builder = layout_cx.ranged_builder(&mut font_cx, &text, display_scale as f32);
+    let mut builder = layout_cx.ranged_builder(&mut font_cx, &text, display_scale);
     builder.push_default(brush_style);
     builder.push_default(font_stack);
     builder.push_default(StyleProperty::LineHeight(1.3));
-    builder.push_default(StyleProperty::FontSize(16.0));
+    builder.push_default(StyleProperty::FontSize(64.0));
+    builder.push_default(StyleProperty::LetterSpacing(5.0));
 
-    builder.push(bold_style, 4..8);
-    builder.push(underline_style, 141..150);
-    builder.push(strikethrough_style, 155..168);
+    builder.push(bold_style, 6..11);
+    // builder.push(underline_style, 141..150);
+    // builder.push(strikethrough_style, 155..168);
 
-    builder.push_inline_box(InlineBox {
-        id: 0,
-        index: 0,
-        width: 50.0,
-        height: 50.0,
-    });
-
-    builder.push_inline_box(InlineBox {
-        id: 1,
-        index: 50,
-        width: 50.0,
-        height: 30.0,
-    });
+    // builder.push_inline_box(InlineBox {
+    //     id: 0,
+    //     index: 5,
+    //     width: 50.0,
+    //     height: 50.0,
+    // });
+    //
+    // builder.push_inline_box(InlineBox {
+    //     id: 1,
+    //     index: 50,
+    //     width: 50.0,
+    //     height: 30.0,
+    // });
 
     let mut layout: Layout<ColorBrush> = builder.build(text);
 
