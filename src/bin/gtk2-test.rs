@@ -58,19 +58,6 @@ fn build_ui(app: &Application) {
         .title("GTK Font Renderer")
         .build();
 
-    // let font_map = pangocairo::FontMap::new();
-    // let context = font_map.create_context();
-    //
-    // let mut render_data = FontRenderData {
-    //     // Pango
-    //     font_map: font_map.clone(),
-    //     context: context.clone(),
-    //     font_desc: None,
-    //     pango_font: None,
-    //     parley_font_context: FontContext::new(),
-    //     parley_font_stack: None,
-    // };
-
     let manager = FontManager::new();
     let font_info = manager.find(FontSourceType::Fontkit, &["comic sans ms"], fontmanager::font_manager::font_info::FontStyle::Normal).unwrap();
 
@@ -227,7 +214,7 @@ fn create_layout(manager: &FontManager, font: &FontInfo, text: &str, width: f64,
     // let underline_style = StyleProperty::Underline(true);
     // let strikethrough_style = StyleProperty::Strikethrough(true);
 
-    let mut font_context = manager.parley_context();
+    let mut font_context = manager.parley_context().expect("Failed to get parley context");
     let font = manager.parley_load_font(&font).unwrap();
 
     let mut builder = layout_cx.ranged_builder(&mut font_context, &text, display_scale);

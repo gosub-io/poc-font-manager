@@ -89,13 +89,3 @@ impl FontSource for PangoSource {
         todo!()
     }
 }
-
-// impl PangoSource {
-//     fn pango_stack(&self) -> &FontMap {
-//         &self.font_map
-//     }
-//
-//     fn pango_context(&self) -> &Context {
-//         &self.context
-//     }
-// }

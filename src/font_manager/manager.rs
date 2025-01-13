@@ -74,12 +74,15 @@ impl FontManager {
         Err(anyhow!("Not implemented"))
     }
 
-    pub fn parley_load_font(&self, _font_info: &FontInfo) -> Result<parley::Font, anyhow::Error> {
-        let Some(_source) = self.sources.get(&FontSourceType::Parley) else {
+    pub fn parley_load_font(&self, font_info: &FontInfo) -> Result<parley::FontStack, anyhow::Error> {
+        let Some(source) = self.sources.get(&FontSourceType::Parley) else {
             return Err(anyhow!("Parley source not found"))
         };
 
-        Err(anyhow!("Not implemented"))
+        let ps = source.as_any().downcast_ref::<ParleySource>()
+            .ok_or_else(|| anyhow!("Failed to downcast ParleySource"))?;
+
+        ps.context().load_font(font_info)
     }
 
     pub fn pango_load_font(&self, _font_info: &FontInfo) -> Result<pangocairo::Font, anyhow::Error> {
@@ -88,6 +91,17 @@ impl FontManager {
         };
 
         Err(anyhow!("Not implemented"))
+    }
+
+    pub fn parley_context(&self) -> Result<&parley::FontContext, anyhow::Error> {
+        let Some(source) = self.sources.get(&FontSourceType::Parley) else {
+            return Err(anyhow!("Parley source not found"))
+        };
+
+        let ps = source.as_any().downcast_ref::<ParleySource>()
+            .ok_or_else(|| anyhow!("Failed to downcast ParleySource"))?;
+
+        Ok(ps.context())
     }
 
     // pub fn pango_context(&self) {

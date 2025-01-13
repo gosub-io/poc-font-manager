@@ -98,22 +98,3 @@ fn handle_to_info(seen_paths: &mut HashSet<PathBuf>, handle: &Handle) -> Result<
         index: Some(*font_index as i32),
     })
 }
-
-fn resolve_symlink(path: PathBuf) -> PathBuf {
-    let mut resolved_path = path.clone();
-
-    loop {
-        match std::fs::read_link(&resolved_path) {
-            Ok(target) => {
-                resolved_path = if target.is_relative() {
-                    path.parent().unwrap_or(Path::new("/")).join(target)
-                } else {
-                    target
-                };
-            },
-            Err(_) => break,
-        }
-    }
-
-    resolved_path
-}

@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use fontique::Query;
 use log::info;
-use anyhow::Error;
 use parley::FontContext;
 use crate::font_manager::font_info::{FontInfo, FontStyle};
 use crate::font_manager::sources::{FontSource, FontSourceType};
@@ -78,26 +78,28 @@ impl FontSource for ParleySource {
         &self.font_info
     }
 
-    fn find(&self, _family: &[&str], _style: FontStyle) -> Result<FontInfo, Error> {
-        todo!()
+    fn find(&mut self, family: &[&str], style: FontStyle) -> Result<FontInfo, anyhow::Error> {
+        let mut query = self.context.collection.query(&mut self.context.source_cache);
+
+        let mut attrs = parley::fontique::Attributes::default();
+        attrs.style = match style {
+            FontStyle::Normal => parley::fontique::Style::Normal,
+            FontStyle::Oblique => parley::fontique::Style::Oblique(Some(0.0)),
+            FontStyle::Italic => parley::fontique::Style::Italic,
+        };
+        query.set_attributes(attrs);
+        query.set_families(&[family]);
+
+        let font = query.find_best_match();
     }
 }
 
-fn resolve_symlink(path: PathBuf) -> PathBuf {
-    let mut resolved_path = path.clone();
-
-    loop {
-        match std::fs::read_link(&resolved_path) {
-            Ok(target) => {
-                resolved_path = if target.is_relative() {
-                    path.parent().unwrap_or(Path::new("/")).join(target)
-                } else {
-                    target
-                };
-            },
-            Err(_) => break,
-        }
+impl ParleySource {
+    pub fn context(&self) -> &FontContext {
+        &self.context
     }
 
-    resolved_path
+    pub fn load_font(&self, font_info: &FontInfo) -> Result<FontStack, anyhow::Error> {
+
+    }
 }
