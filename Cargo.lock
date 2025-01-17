@@ -1002,28 +1002,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fontmanager"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "cairo-rs 0.19.4",
- "colog",
- "font-kit",
- "fontique 0.1.0",
- "freetype-rs 0.36.0",
- "gtk4",
- "image",
- "log",
- "pangocairo",
- "parley",
- "pollster",
- "prettytable",
- "swash",
- "vello",
- "winit",
-]
-
-[[package]]
 name = "foreign-types"
 version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1429,6 +1407,28 @@ dependencies = [
  "glib-sys 0.20.7",
  "libc",
  "system-deps 7.0.3",
+]
+
+[[package]]
+name = "gosub_fontmanager"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cairo-rs 0.19.4",
+ "colog",
+ "font-kit",
+ "fontique 0.1.0",
+ "freetype-rs 0.36.0",
+ "gtk4",
+ "image",
+ "log",
+ "pangocairo",
+ "parley",
+ "pollster",
+ "prettytable",
+ "swash",
+ "vello",
+ "winit",
 ]
 
 [[package]]

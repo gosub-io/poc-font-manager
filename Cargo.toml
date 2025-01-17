@@ -1,7 +1,10 @@
 [package]
-name = "fontmanager"
+name = "gosub_fontmanager"
 version = "0.1.0"
 edition = "2021"
+authors = ["Gosub Community <info@gosub.io>"]
+description = "Generic font manager"
+license = "MIT"
 
 [[bin]]
 name = "display-fonts"

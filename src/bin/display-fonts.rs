@@ -1,5 +1,5 @@
 use prettytable::{Attr, Cell, Row, Table};
-use fontmanager::{FontManager, FontSourceType};
+use gosub_fontmanager::{FontManager, FontSourceType};
 
 fn main() {
     colog::init();

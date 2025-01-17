@@ -9,7 +9,7 @@ use swash::scale::{Render, ScaleContext, Scaler, Source, StrikeWith};
 use swash::zeno;
 use swash::FontRef;
 use zeno::{Format, Vector};
-use fontmanager::{FontManager, FontSourceType, FontStyle};
+use gosub_fontmanager::{FontManager, FontSourceType, FontStyle};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct ColorBrush {

@@ -4,7 +4,7 @@ use image::Rgba;
 use parley::layout::{Alignment, Layout, PositionedLayoutItem};
 use parley::style::{FontWeight, StyleProperty};
 use parley::{InlineBox, LayoutContext};
-use fontmanager::{FontInfo, FontManager, FontSourceType, FontStyle};
+use gosub_fontmanager::{FontInfo, FontManager, FontSourceType, FontStyle};
 
 const RENDER_GLYPHS_PER_RUN : bool = false;
 
@@ -51,7 +51,7 @@ fn build_ui(app: &Application) {
 
     // let text = "Some text here. Let's make it a bit longer so that line wrapping kicks in 😊. And also some اللغة العربية arabic text.\nThis is underline and strikethrough text";
     // let text = "hello world. This is a test to see if it works! abcdefghhijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ 0123456790";
-    let text = fontmanager::flatland::TEXT;
+    let text = gosub_fontmanager::flatland::TEXT;
 
     let area = DrawingArea::default();
     area.set_hexpand(true);

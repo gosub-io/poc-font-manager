@@ -1,4 +1,4 @@
-use fontmanager::{FontManager, FontSourceType, FontStyle};
+use gosub_fontmanager::{FontManager, FontSourceType, FontStyle};
 // const TEST_STRING1: &str = "A B C D E\n \u{EA84} a b c d e";
 
 const TEST_STRING: &str = r"A B C D E F G H I J K L M N O P Q R S T U V W X Y Z

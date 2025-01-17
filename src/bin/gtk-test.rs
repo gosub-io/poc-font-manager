@@ -2,7 +2,7 @@ use gtk4::{glib, Application, ApplicationWindow, DrawingArea};
 use gtk4::prelude::{ApplicationExt, ApplicationExtManual, DrawingAreaExt, DrawingAreaExtManual, GtkWindowExt, WidgetExt};
 use pangocairo::functions::{create_layout, show_layout};
 use pangocairo::pango;
-use fontmanager::{FontManager, FontSourceType, FontStyle};
+use gosub_fontmanager::{FontManager, FontSourceType, FontStyle};
 
 const APP_ID: &str = "io.gosub.font-manager.gtk-test";
 
@@ -53,7 +53,7 @@ fn build_ui(app: &Application) {
         let desc = pango.get_description(&fi_comic, 14.0);
         layout.set_font_description(Some(&desc));
 
-        layout.set_text(fontmanager::flatland::TEXT);
+        layout.set_text(gosub_fontmanager::flatland::TEXT);
         layout.set_width(width * pango::SCALE);
         layout.set_alignment(pango::Alignment::Center);
 
