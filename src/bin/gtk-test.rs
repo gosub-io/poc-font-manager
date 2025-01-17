@@ -48,11 +48,10 @@ fn build_ui(app: &Application) {
 
         // Layout works nicely with bounding boxes and alignment, but i can't seem to get the fontface to render
         let layout = create_layout(gtk_cr);
-        let desc = font_manager.pango_get_description(&fi_comic, 14.0);
-        if desc.is_err() {
-            return;
-        }
-        layout.set_font_description(Some(&desc.unwrap()));
+
+        let pango = font_manager.find_pango();
+        let desc = pango.get_description(&fi_comic, 14.0);
+        layout.set_font_description(Some(&desc));
 
         layout.set_text(fontmanager::flatland::TEXT);
         layout.set_width(width * pango::SCALE);
@@ -79,11 +78,9 @@ fn build_ui(app: &Application) {
 
         // Display the next text in a different font
 
-        let desc = font_manager.pango_get_description(&fi_arial, 14.0);
-        if desc.is_err() {
-            return;
-        }
-        layout.set_font_description(Some(&desc.unwrap()));
+        let pango = font_manager.find_pango();
+        let desc = pango.get_description(&fi_arial, 14.0);
+        layout.set_font_description(Some(&desc));
         gtk_cr.set_source_rgba(0.7, 0.2, 0.5, 1.0);
         gtk_cr.move_to(0.0, cur_y as f64);
         show_layout(&gtk_cr, &layout);

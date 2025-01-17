@@ -116,7 +116,8 @@ fn draw(manager: &FontManager, font: &FontInfo, cr: &gtk4::cairo::Context, layou
                     // let _ = cr.fill();
 
 
-                    let font = manager.pango_load_font(&font).unwrap();
+                    let pango = manager.find_pango();
+                    let font = pango.load_font(&font).unwrap();
 
                     if RENDER_GLYPHS_PER_RUN {
                         // Render a whole glyph run at once. This does not work correctly
@@ -198,8 +199,9 @@ fn create_layout(manager: &FontManager, font: &FontInfo, text: &str, width: f64,
     // let underline_style = StyleProperty::Underline(true);
     // let strikethrough_style = StyleProperty::Strikethrough(true);
 
-    let font_stack = manager.parley_get_font_stack(&font).unwrap();
-    let binding = manager.parley_context().expect("Failed to get font context");
+    let parley = manager.find_parley();
+    let font_stack = parley.get_font_stack(font.family.clone());
+    let binding = parley.context();
     let mut font_context = binding.borrow_mut();
 
     let mut builder = layout_cx.ranged_builder(&mut font_context, &text, display_scale);

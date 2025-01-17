@@ -1,12 +1,5 @@
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::sync::Arc;
-use anyhow::anyhow;
-use log::error;
 use crate::font_manager::font_info::{FontInfo, FontStyle};
 use crate::font_manager::sources::{FontSource, FontSourceType};
-#[cfg(feature = "source_fontique")]
-use crate::font_manager::sources::fontique::FontiqueSource;
 #[cfg(feature = "source_fontkit")]
 use crate::font_manager::sources::fontkit::FontKitSource;
 #[cfg(feature = "source_pango")]
@@ -18,24 +11,23 @@ use crate::font_manager::sources::parley::ParleySource;
 pub const LOG_TARGET: &str = "font-manager";
 
 pub struct FontManager {
-    sources: HashMap<FontSourceType, Box<dyn FontSource>>,
+    #[cfg(feature = "source_fontkit")]
+    fontkit: FontKitSource,
+    #[cfg(feature = "source_pango")]
+    pango: PangoSource,
+    #[cfg(feature = "source_parley")]
+    parley: ParleySource,
 }
 
 impl FontManager {
     pub fn new() -> Self {
-        let mut sources : HashMap<FontSourceType, Box<dyn FontSource>> = HashMap::new();
-
-        #[cfg(feature = "source_fontkit")]
-        sources.insert(FontSourceType::Fontkit, Box::new(FontKitSource::new()));
-        #[cfg(feature = "source_fontique")]
-        sources.insert(FontSourceType::Fontique, Box::new(FontiqueSource::new()));
-        #[cfg(feature = "source_parley")]
-        sources.insert(FontSourceType::Parley, Box::new(ParleySource::new()));
-        #[cfg(feature = "source_pango")]
-        sources.insert(FontSourceType::Pango, Box::new(PangoSource::new()));
-
         Self {
-            sources,
+            #[cfg(feature = "source_fontkit")]
+            fontkit: FontKitSource::new(),
+            #[cfg(feature = "source_parley")]
+            parley: ParleySource::new(),
+            #[cfg(feature = "source_pango")]
+            pango: PangoSource::new(),
         }
     }
 
@@ -43,26 +35,29 @@ impl FontManager {
     pub fn sources(&self) -> Vec<FontSourceType> {
         let mut v = vec![];
 
-        for key in self.sources.keys() {
-            v.push(*key);
-        }
+        #[cfg(feature = "source_fontkit")]
+        v.push(FontSourceType::Fontkit);
+        #[cfg(feature = "source_pango")]
+        v.push(FontSourceType::Pango);
+        #[cfg(feature = "source_parley")]
+        v.push(FontSourceType::Parley);
 
         v
     }
 
     /// Returns all available fonts for given source-type
     pub fn available_fonts(&self, source_type: FontSourceType) -> Vec<FontInfo> {
-        match self.sources.get(&source_type) {
-            Some(source) => {
-                let mut fonts = source.available_fonts().to_vec();
-                fonts.sort_by_key(|fi| fi.family.clone());
-                fonts
-            },
-            None => {
-                error!(target: LOG_TARGET, "Unknown font source: {:?}", source_type);
-                vec![]
-            }
-        }
+        let mut fonts = match source_type {
+            #[cfg(feature = "source_fontkit")]
+            FontSourceType::Fontkit => self.fontkit.available_fonts().to_vec(),
+            #[cfg(feature = "source_pango")]
+            FontSourceType::Pango => self.pango.available_fonts().to_vec(),
+            #[cfg(feature = "source_parley")]
+            FontSourceType::Parley => self.parley.available_fonts().to_vec(),
+        };
+
+        fonts.sort_by_key(|fi| fi.family.clone());
+        fonts
     }
 
     pub fn find(&self, source_type: FontSourceType, families: &[&str], style: FontStyle) -> Option<FontInfo> {
@@ -79,74 +74,78 @@ impl FontManager {
 }
 
 impl FontManager {
-    #[cfg(feature = "source_fontique")]
-    pub fn fontique_load_font(&self, _font_info: &FontInfo) -> Result<fontique::FontInfo, anyhow::Error> {
-        let Some(_source) = self.sources.get(&FontSourceType::Fontique) else {
-            return Err(anyhow!("Fontique source not found"))
-        };
-
-        let _a = 1;
-
-        Err(anyhow!("Not implemented"))
-    }
-
     #[cfg(feature = "source_fontkit")]
-    pub fn fontkit_load_freetype_font(&self, font_info: &FontInfo) -> Result<freetype::Face, anyhow::Error> {
-        let Some(source) = self.sources.get(&FontSourceType::Fontkit) else {
-            return Err(anyhow!("FontKit source not found"))
-        };
-
-        let ps = source.as_any().downcast_ref::<FontKitSource>()
-            .ok_or_else(|| anyhow!("Failed to downcast FontKitSource"))?;
-
-        ps.load_freetype_font(font_info)
+    pub fn find_fontkit(&self) -> &FontKitSource {
+        &self.fontkit
     }
 
     #[cfg(feature = "source_pango")]
-    pub fn pango_load_font(&self, font_info: &FontInfo) -> Result<pangocairo::pango::Font, anyhow::Error> {
-        let Some(source) = self.sources.get(&FontSourceType::Pango) else {
-            return Err(anyhow!("Pango source not found"))
-        };
-
-        let ps = source.as_any().downcast_ref::<PangoSource>()
-            .ok_or_else(|| anyhow!("Failed to downcast PangoSource"))?;
-
-        ps.load_font(font_info)
-    }
-
-    #[cfg(feature = "source_pango")]
-    pub fn pango_get_description(&self, font_info: &FontInfo, size: f64) -> Result<pangocairo::pango::FontDescription, anyhow::Error> {
-        let Some(source) = self.sources.get(&FontSourceType::Pango) else {
-            return Err(anyhow!("Pango source not found"))
-        };
-
-        let ps = source.as_any().downcast_ref::<PangoSource>()
-            .ok_or_else(|| anyhow!("Failed to downcast PangoSource"))?;
-
-        Ok(ps.get_description(font_info, size))
+    pub fn find_pango(&self) -> &PangoSource {
+        &self.pango
     }
 
     #[cfg(feature = "source_parley")]
-    pub fn parley_context(&self) -> Result<Arc<RefCell<parley::FontContext>>, anyhow::Error> {
-        let Some(source) = self.sources.get(&FontSourceType::Parley) else {
-            return Err(anyhow!("Parley source not found"))
-        };
-
-        let ps = source.as_any().downcast_ref::<ParleySource>()
-            .ok_or_else(|| anyhow!("Failed to downcast ParleySource"))?;
-
-        Ok(ps.context())
+    pub fn find_parley(&self) -> &ParleySource {
+        &self.parley
     }
 
-    #[cfg(feature = "source_parley")]
-    pub fn parley_get_font_stack(&self, font_info: &FontInfo) -> Result<parley::FontStack, anyhow::Error> {
-        let Some(source) = self.sources.get(&FontSourceType::Parley) else {
-            return Err(anyhow!("Parley source not found"))
-        };
-
-        let ps = source.as_any().downcast_ref::<ParleySource>()
-            .ok_or_else(|| anyhow!("Failed to downcast ParleySource"))?;
-
-        Ok(ps.get_font_stack(font_info.family.clone()))
-    }
+    // #[cfg(feature = "source_fontkit")]
+    // pub fn fontkit_load_freetype_font(&self, font_info: &FontInfo) -> Result<freetype::Face, anyhow::Error> {
+    //     let Some(source) = self.sources.get(&FontSourceType::Fontkit) else {
+    //         return Err(anyhow!("FontKit source not found"))
+    //     };
+    //
+    //     let ps = source.as_any().downcast_ref::<FontKitSource>()
+    //         .ok_or_else(|| anyhow!("Failed to downcast FontKitSource"))?;
+    //
+    //     ps.load_freetype_font(font_info)
+    // }
+    //
+    // #[cfg(feature = "source_pango")]
+    // pub fn pango_load_font(&self, font_info: &FontInfo) -> Result<pangocairo::pango::Font, anyhow::Error> {
+    //     let Some(source) = self.sources.get(&FontSourceType::Pango) else {
+    //         return Err(anyhow!("Pango source not found"))
+    //     };
+    //
+    //     let ps = source.as_any().downcast_ref::<PangoSource>()
+    //         .ok_or_else(|| anyhow!("Failed to downcast PangoSource"))?;
+    //
+    //     ps.load_font(font_info)
+    // }
+    //
+    // #[cfg(feature = "source_pango")]
+    // pub fn pango_get_description(&self, font_info: &FontInfo, size: f64) -> Result<pangocairo::pango::FontDescription, anyhow::Error> {
+    //     let Some(source) = self.sources.get(&FontSourceType::Pango) else {
+    //         return Err(anyhow!("Pango source not found"))
+    //     };
+    //
+    //     let ps = source.as_any().downcast_ref::<PangoSource>()
+    //         .ok_or_else(|| anyhow!("Failed to downcast PangoSource"))?;
+    //
+    //     Ok(ps.get_description(font_info, size))
+    // }
+    //
+    // #[cfg(feature = "source_parley")]
+    // pub fn parley_context(&self) -> Result<Arc<RefCell<parley::FontContext>>, anyhow::Error> {
+    //     let Some(source) = self.sources.get(&FontSourceType::Parley) else {
+    //         return Err(anyhow!("Parley source not found"))
+    //     };
+    //
+    //     let ps = source.as_any().downcast_ref::<ParleySource>()
+    //         .ok_or_else(|| anyhow!("Failed to downcast ParleySource"))?;
+    //
+    //     Ok(ps.context())
+    // }
+    //
+    // #[cfg(feature = "source_parley")]
+    // pub fn parley_get_font_stack(&self, font_info: &FontInfo) -> Result<parley::FontStack, anyhow::Error> {
+    //     let Some(source) = self.sources.get(&FontSourceType::Parley) else {
+    //         return Err(anyhow!("Parley source not found"))
+    //     };
+    //
+    //     let ps = source.as_any().downcast_ref::<ParleySource>()
+    //         .ok_or_else(|| anyhow!("Failed to downcast ParleySource"))?;
+    //
+    //     Ok(ps.get_font_stack(font_info.family.clone()))
+    // }
 }

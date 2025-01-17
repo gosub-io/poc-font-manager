@@ -36,9 +36,11 @@ fn main() {
     let padding = 20;
 
     let manager = FontManager::new();
+    let parley = manager.find_parley();
+
     let font_info = manager.find(FontSourceType::Parley, &["consolas", "verdana", "comic sans ms", "arial"], FontStyle::Normal).expect("font not found");
-    let font_stack = manager.parley_get_font_stack(&font_info).expect("Comic sans not found");
-    let font_cx = manager.parley_context().expect("Parley context not found");
+    let font_stack = parley.get_font_stack(font_info.family.clone());
+    let font_cx = parley.context();
 
     let mut layout_cx = LayoutContext::new();
     let mut scale_cx = ScaleContext::new();

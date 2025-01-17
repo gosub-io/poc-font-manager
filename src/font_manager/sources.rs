@@ -4,8 +4,6 @@ use std::path::{Path, PathBuf};
 
 #[cfg(feature = "source_fontkit")]
 pub mod fontkit;
-#[cfg(feature = "source_fontique")]
-pub mod fontique;
 #[cfg(feature = "source_parley")]
 pub mod parley;
 #[cfg(feature = "source_pango")]
@@ -31,8 +29,6 @@ impl<T: FontSource + Any> AsAny for T {
 pub enum FontSourceType {
     #[cfg(feature = "source_fontkit")]
     Fontkit,
-    #[cfg(feature = "source_fontique")]
-    Fontique,
     #[cfg(feature = "source_parley")]
     Parley,
     #[cfg(feature = "source_pango")]

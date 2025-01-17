@@ -36,7 +36,9 @@ fn main() {
         eprintln!("Font not found: {}", font);
         return;
     }
-    let face = manager.fontkit_load_freetype_font(&info.unwrap()).unwrap();
+
+    let fontkit = manager.find_fontkit();
+    let face = fontkit.load_freetype_font(&info.unwrap()).unwrap();
     char_to_svg(face, TEST_STRING);
 }
 
