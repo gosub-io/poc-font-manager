@@ -24,6 +24,10 @@ jobs:
 
       - name: Install dependencies
         run: |
+          brew install pango
+          brew install gtk4
+          brew install gdk-pixbuf
+          brew install cairo
           cargo fetch
 
       - name: Build the application
