@@ -1,20 +1,21 @@
+use std::borrow::Cow;
 use std::collections::HashSet;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use log::info;
-use anyhow::Error;
-use parley::FontContext;
+use std::cell::RefCell;
+use std::sync::Arc;
 use crate::font_manager::font_info::{FontInfo, FontStyle};
-use crate::font_manager::sources::{FontSource, FontSourceType};
+use crate::font_manager::sources::{resolve_symlink, FontSource, FontSourceType};
 
-#[allow(unused)]
+// #[allow(unused)]
 pub struct ParleySource {
-    context: FontContext,
+    context: Arc<RefCell<parley::FontContext>>,
     font_info: Vec<FontInfo>
 }
 
 impl FontSource for ParleySource {
     fn new() -> Self {
-        let mut context = FontContext::new();
+        let mut context = parley::FontContext::new();
         let mut font_info = Vec::new();
         let coll = &mut context.collection;
 
@@ -22,12 +23,8 @@ impl FontSource for ParleySource {
 
         let names: Vec<String> = coll.family_names().map(|n| n.to_string()).collect();
         for name in names {
-            // println!("Family: {}", name);
             if let Some(family) = coll.family_by_name(&name) {
-                // println!("  - Family: {}", name);
                 for font in family.fonts() {
-                    // println!("    - Font: {:?} {:?}", font.source().kind, font.source().id);
-                    // println!(" Weight: {}", font.weight());
                     let style = match font.style() {
                         parley::FontStyle::Normal => FontStyle::Normal,
                         parley::FontStyle::Oblique(_) => FontStyle::Oblique,
@@ -69,7 +66,7 @@ impl FontSource for ParleySource {
         info!("Loaded {} fonts from parley.", font_info.len());
 
         Self {
-            context,
+            context: Arc::new(RefCell::new(context)),
             font_info,
         }
     }
@@ -77,27 +74,16 @@ impl FontSource for ParleySource {
     fn available_fonts(&self) -> &[FontInfo] {
         &self.font_info
     }
-
-    fn find(&self, _family: &[&str], _style: FontStyle) -> Result<FontInfo, Error> {
-        todo!()
-    }
 }
 
-fn resolve_symlink(path: PathBuf) -> PathBuf {
-    let mut resolved_path = path.clone();
-
-    loop {
-        match std::fs::read_link(&resolved_path) {
-            Ok(target) => {
-                resolved_path = if target.is_relative() {
-                    path.parent().unwrap_or(Path::new("/")).join(target)
-                } else {
-                    target
-                };
-            },
-            Err(_) => break,
-        }
+impl ParleySource {
+    pub fn context(&self) -> Arc<RefCell<parley::FontContext>> {
+        self.context.clone()
     }
 
-    resolved_path
+    pub fn get_font_stack(&self, family: String) -> parley::FontStack {
+        parley::FontStack::Single(
+            parley::style::FontFamily::Named(Cow::Owned(family))
+        )
+    }
 }

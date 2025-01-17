@@ -24,7 +24,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          sudo apt update -y && sudo apt install libcairo2-dev libglib2.0-dev libfontconfig-dev libfreetype6 libfreetype-dev -y
+          sudo apt update -y && sudo apt install libgtk-4-dev libgdk-pixbuf-2.0-dev libpango1.0-dev libcairo2-dev libglib2.0-dev libfontconfig-dev libfreetype6 libfreetype-dev -y
           cargo fetch
 
       - name: Build the application

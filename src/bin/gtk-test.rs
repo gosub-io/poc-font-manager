@@ -1,8 +1,8 @@
-use fontmanager::font_manager::{FontInfo, FontManager, FontStyle};
 use gtk4::{glib, Application, ApplicationWindow, DrawingArea};
 use gtk4::prelude::{ApplicationExt, ApplicationExtManual, DrawingAreaExt, DrawingAreaExtManual, GtkWindowExt, WidgetExt};
 use pangocairo::functions::{create_layout, show_layout};
 use pangocairo::pango;
+use gosub_fontmanager::{FontManager, FontSourceType, FontStyle};
 
 const APP_ID: &str = "io.gosub.font-manager.gtk-test";
 
@@ -24,8 +24,8 @@ fn main() -> glib::ExitCode {
 
 fn build_ui(app: &Application) {
     let font_manager = FontManager::new();
-    let _ = font_manager.find(vec!["comic sans ms"], FontStyle::Normal).expect("Failed to find font Comic Sans MS");
-    let _ = font_manager.find(vec!["Arial"], FontStyle::Normal).expect("Failed to find font Arial");
+    let _ = font_manager.find(FontSourceType::Pango,&["comic sans ms"], FontStyle::Normal).expect("Failed to find font Comic Sans MS");
+    let _ = font_manager.find(FontSourceType::Pango, &["Arial"], FontStyle::Normal).expect("Failed to find font Arial");
 
     // Create a window and set the title
     let window = ApplicationWindow::builder()
@@ -37,21 +37,23 @@ fn build_ui(app: &Application) {
     area.set_hexpand(true);
     area.set_vexpand(true);
     area.set_draw_func(move |area, gtk_cr, width, _height| {
+        let fi_comic = font_manager.find(FontSourceType::Pango,&["comic sans ms"], FontStyle::Normal).expect("Failed to find font");
+        let fi_arial = font_manager.find(FontSourceType::Pango,&["arial"], FontStyle::Normal).expect("Failed to find font");
+
         // Red square to indicate stuff is being drawn on screen
         gtk_cr.set_source_rgba(1.0, 0.0, 0.0, 1.0);
         gtk_cr.rectangle(0.0, 0.0, 100.0, 100.0);
         let _ = gtk_cr.fill();
 
-        // Here we set the font. We find the font, load it and convert it from freetype font face to a cairo font face.
-        let info = font_manager.find(vec!["comic sans ms"], FontStyle::Normal).expect("Failed to find font");
-        // let ft_face = font_manager.load(&info).expect("Failed to load font");
 
         // Layout works nicely with bounding boxes and alignment, but i can't seem to get the fontface to render
         let layout = create_layout(gtk_cr);
-        let desc = create_font_description(&info, 14.0);
+
+        let pango = font_manager.find_pango();
+        let desc = pango.get_description(&fi_comic, 14.0);
         layout.set_font_description(Some(&desc));
 
-        layout.set_text(fontmanager::flatland::TEXT);
+        layout.set_text(gosub_fontmanager::flatland::TEXT);
         layout.set_width(width * pango::SCALE);
         layout.set_alignment(pango::Alignment::Center);
 
@@ -75,9 +77,9 @@ fn build_ui(app: &Application) {
         let cur_y = max_y;
 
         // Display the next text in a different font
-        let info = font_manager.find(vec!["arial"], FontStyle::Normal).expect("Failed to find font");
-        let desc = create_font_description(&info, 12.0);
 
+        let pango = font_manager.find_pango();
+        let desc = pango.get_description(&fi_arial, 14.0);
         layout.set_font_description(Some(&desc));
         gtk_cr.set_source_rgba(0.7, 0.2, 0.5, 1.0);
         gtk_cr.move_to(0.0, cur_y as f64);
@@ -106,20 +108,4 @@ fn build_ui(app: &Application) {
     window.set_default_width(800);
     window.set_default_height(600);
     window.present();
-}
-
-/// Convert a fontInfo from freetype into a pango font description.
-fn create_font_description(info: &FontInfo, size: f64) -> pango::FontDescription {
-    let mut desc = pango::FontDescription::new();
-    desc.set_family(&info.family.clone());
-
-    desc.set_style(match info.style {
-        FontStyle::Italic => pango::Style::Italic,
-        FontStyle::Oblique => pango::Style::Oblique,
-        FontStyle::Normal => pango::Style::Normal,
-    });
-
-    desc.set_size((size * pango::SCALE as f64) as i32);
-
-    desc
 }
